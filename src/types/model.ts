@@ -68,6 +68,7 @@ export interface Message {
   id: string
   body: string
   authorLabel: string
+  senderSpaceId?: string // 새 메시지의 화면 배치·수정 권한을 구분하는 기기 안 정보
   replyToId?: string
   createdAt: string
   editedAt?: string

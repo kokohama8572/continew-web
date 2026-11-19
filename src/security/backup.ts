@@ -102,6 +102,7 @@ function isMessage(value: unknown) {
     isText(value.id) &&
     isText(value.body) &&
     isText(value.authorLabel) &&
+    isOptionalText(value.senderSpaceId) &&
     isText(value.createdAt) &&
     isNullableText(value.deletedAt)
   )
