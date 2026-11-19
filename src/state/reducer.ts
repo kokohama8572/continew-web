@@ -41,6 +41,8 @@ export type Action =
   | { type: 'DELETE_MEMO'; id: string }
   | { type: 'PUBLISH_POST'; draft: PostDraft }
   | { type: 'SEND_MESSAGE'; body: string; authorLabel: string; replyToId?: string }
+  | { type: 'EDIT_MESSAGE'; id: string; body: string }
+  | { type: 'DELETE_MESSAGE'; id: string }
   | { type: 'CONFIRM'; id?: string; targetType: 'post' | 'message'; targetId: string; label?: string }
   | { type: 'UNCONFIRM'; id: string }
   | { type: 'TOGGLE_TODO'; id: string }
@@ -156,11 +158,31 @@ export function reducer(s: AppState, a: Action): AppState {
         id: newId('msg'),
         body: a.body,
         authorLabel: a.authorLabel,
+        senderSpaceId: s.currentSpaceId ?? undefined,
         replyToId: a.replyToId,
         createdAt: nowIso(),
         deletedAt: null,
       }
       return { ...s, messages: [...s.messages, msg] }
+    }
+    case 'EDIT_MESSAGE': {
+      const body = a.body.trim()
+      if (!body || body.length > 5000 || !s.currentSpaceId) return s
+      return {
+        ...s,
+        messages: s.messages.map((message) => message.id === a.id && !message.deletedAt && message.senderSpaceId === s.currentSpaceId
+          ? { ...message, body, editedAt: nowIso() }
+          : message),
+      }
+    }
+    case 'DELETE_MESSAGE': {
+      if (!s.currentSpaceId) return s
+      return {
+        ...s,
+        messages: s.messages.map((message) => message.id === a.id && !message.deletedAt && message.senderSpaceId === s.currentSpaceId
+          ? { ...message, deletedAt: nowIso() }
+          : message),
+      }
     }
     case 'CONFIRM': {
       // 공간 id는 저장하지 않는다. 표기 글자만 (F-04-9)

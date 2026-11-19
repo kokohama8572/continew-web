@@ -40,6 +40,22 @@ describe('대화에서 공용 할 일로 옮기기', () => {
   })
 })
 
+describe('공간에서 보낸 메시지 수정·삭제', () => {
+  it('보낸 공간에서만 수정하고 삭제할 수 있다', () => {
+    let state = reducer(makeSeed(), { type: 'OPEN_SPACE', id: 'space_a' })
+    state = reducer(state, { type: 'SEND_MESSAGE', body: '원문', authorLabel: '이름 없이' })
+    const id = state.messages.at(-1)!.id
+    expect(state.messages.at(-1)?.senderSpaceId).toBe('space_a')
+    const otherSpace = reducer(state, { type: 'OPEN_SPACE', id: 'space_b' })
+    expect(reducer(otherSpace, { type: 'EDIT_MESSAGE', id, body: '변경' }).messages.at(-1)?.body).toBe('원문')
+    expect(reducer(otherSpace, { type: 'DELETE_MESSAGE', id }).messages.at(-1)?.deletedAt).toBeNull()
+    const edited = reducer(state, { type: 'EDIT_MESSAGE', id, body: '변경' })
+    expect(edited.messages.at(-1)?.body).toBe('변경')
+    expect(edited.messages.at(-1)?.editedAt).toBeTruthy()
+    expect(reducer(edited, { type: 'DELETE_MESSAGE', id }).messages.at(-1)?.deletedAt).toBeTruthy()
+  })
+})
+
 describe('공용 기록 요약 동의', () => {
   it('동의 시각 없이 요약을 켤 수 없고, 끄면 동의 기록도 지운다', () => {
     const initial = makeSeed()

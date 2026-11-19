@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Send } from 'lucide-react'
+import { Check, ChevronDown, MoreHorizontal, Send } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Sheet from '../components/Sheet'
@@ -12,15 +12,18 @@ const time = (value: string) =>
 const authorTone = (label: string) =>
   Array.from(label).reduce((hash, char) => hash + char.codePointAt(0)!, 0) % 4
 
-/** 작성자는 사용자가 직접 선택한다. 공간 이름으로 추측하지 않는다. */
+/** 열린 공간을 기본 작성자로 쓰고, 다른 표기를 고를 수 있다. */
 export default function ChatScreen() {
   const navigate = useNavigate()
   const { state, dispatch, currentSpace } = useStore()
   const [authorChoice, setAuthorChoice] = useState<{ spaceId: string | null; label: string } | null>(null)
   const spaceId = currentSpace?.id ?? null
-  const authorLabel = authorChoice?.spaceId === spaceId ? authorChoice.label : ''
+  const authorLabel = authorChoice?.spaceId === spaceId ? authorChoice.label : (currentSpace?.name ?? '')
   const [body, setBody] = useState('')
   const [authorOpen, setAuthorOpen] = useState(false)
+  const [menuId, setMenuId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editBody, setEditBody] = useState('')
   const [params] = useSearchParams()
   const focusMessage = params.get('message')
   const messages = state.messages.filter((message) => !message.deletedAt)
@@ -65,27 +68,41 @@ export default function ChatScreen() {
       </div>
 
       <ul className="chat-list" aria-label="공용 대화" ref={listRef}>
-        {messages.map((message) => (
-          <li
-            className={`chat-message chat-tone-${authorTone(message.authorLabel)}${message.id === focusMessage ? ' is-target' : ''}`}
-            id={`message-${message.id}`}
-            key={message.id}
-          >
-            <span className="chat-avatar" aria-hidden>
-              {message.authorLabel.slice(0, 1)}
-            </span>
-            <div className="chat-content">
-              <div className="chat-meta">
-                <strong>{message.authorLabel}</strong>
-                <time dateTime={message.createdAt}>{time(message.createdAt)}</time>
+        {messages.map((message, index) => {
+          const mine = !!spaceId && message.senderSpaceId === spaceId
+          const previous = messages[index - 1]
+          const grouped = !!previous && previous.authorLabel === message.authorLabel && previous.senderSpaceId === message.senderSpaceId
+          return (
+            <li
+              className={`chat-message chat-tone-${authorTone(message.authorLabel)}${mine ? ' is-own' : ''}${grouped ? ' is-grouped' : ''}${message.id === focusMessage ? ' is-target' : ''}`}
+              id={`message-${message.id}`}
+              key={message.id}
+            >
+              <span className={`chat-avatar${grouped ? ' is-placeholder' : ''}`} aria-hidden>
+                {message.authorLabel.slice(0, 1)}
+              </span>
+              <div className="chat-content">
+                {!grouped && (
+                  <div className="chat-meta">
+                    <strong>{message.authorLabel}</strong>
+                  </div>
+                )}
+                <div className="chat-bubble-row">
+                  <p className="chat-bubble">{message.body}</p>
+                  {mine && (
+                    <button type="button" className="chat-menu-button" aria-label={`${message.body.slice(0, 20)} 메시지 옵션`} onClick={() => setMenuId(message.id)}>
+                      <MoreHorizontal size={17} aria-hidden />
+                    </button>
+                  )}
+                </div>
+                <time className="chat-time" dateTime={message.createdAt}>{time(message.createdAt)}{message.editedAt ? ' · 수정됨' : ''}</time>
+                <div className="chat-actions">
+                  <button type="button" onClick={() => navigate(`/share?type=todo&message=${encodeURIComponent(message.id)}`)}>할 일·일정으로 남기기</button>
+                </div>
               </div>
-              <p className="chat-bubble">{message.body}</p>
-              <div className="chat-actions">
-                <button type="button" onClick={() => navigate(`/share?type=todo&message=${encodeURIComponent(message.id)}`)}>할 일·일정으로 남기기</button>
-              </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          )
+        })}
       </ul>
 
       <form className="chat-compose" onSubmit={send}>
@@ -127,6 +144,29 @@ export default function ChatScreen() {
             </li>
           ))}
         </ul>
+      </Sheet>
+      <Sheet open={menuId !== null} onClose={() => setMenuId(null)} title="메시지 옵션">
+        <div className="switch-list">
+          <button className="switch-item" onClick={() => {
+            const message = messages.find((item) => item.id === menuId)
+            if (!message || message.senderSpaceId !== spaceId) return
+            setEditBody(message.body)
+            setEditingId(message.id)
+            setMenuId(null)
+          }}>수정</button>
+          <button className="switch-item" onClick={() => {
+            const id = menuId
+            setMenuId(null)
+            if (id && window.confirm('이 메시지를 삭제할까요?')) dispatch({ type: 'DELETE_MESSAGE', id })
+          }}>삭제</button>
+        </div>
+      </Sheet>
+      <Sheet open={editingId !== null} onClose={() => setEditingId(null)} title="메시지 수정">
+        <textarea className="form-input chat-edit-input" aria-label="수정할 메시지" maxLength={5000} value={editBody} onChange={(event) => setEditBody(event.target.value)} />
+        <button className="btn btn-primary wide" disabled={!editBody.trim()} onClick={() => {
+          if (editingId) dispatch({ type: 'EDIT_MESSAGE', id: editingId, body: editBody })
+          setEditingId(null)
+        }}>수정 저장</button>
       </Sheet>
     </div>
   )
