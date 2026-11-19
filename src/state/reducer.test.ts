@@ -27,6 +27,32 @@ describe('원칙2 · 작성자 표기는 직접 고른 뒤에만', () => {
   })
 })
 
+describe('대화에서 공용 할 일로 옮기기', () => {
+  it('마감일과 원문 메시지 연결을 저장한다', () => {
+    const before = makeSeed()
+    const dueAt = '2026-11-20T00:00:00.000Z'
+    const after = reducer(before, {
+      type: 'PUBLISH_POST',
+      draft: { ...draft, type: 'todo', origin: 'message', fromMessageId: before.messages[0].id, dueAt },
+    })
+    expect(after.posts[0]).toMatchObject({ type: 'todo', origin: 'message', sourceMessageId: before.messages[0].id, dueAt })
+    expect(after.messages).toEqual(before.messages)
+  })
+})
+
+describe('공용 기록 요약 동의', () => {
+  it('동의 시각 없이 요약을 켤 수 없고, 끄면 동의 기록도 지운다', () => {
+    const initial = makeSeed()
+    const withoutConsent = reducer(initial, { type: 'SET_AI', enabled: true })
+    expect(withoutConsent.settings.aiSummaryEnabled).toBe(false)
+    const enabled = reducer(initial, { type: 'SET_AI', enabled: true, consentAt: '2026-11-19T00:00:00.000Z' })
+    expect(enabled.settings.aiSummaryEnabled).toBe(true)
+    const disabled = reducer(enabled, { type: 'SET_AI', enabled: false })
+    expect(disabled.settings).toMatchObject({ aiSummaryEnabled: false })
+    expect(disabled.settings.aiConsentAt).toBeUndefined()
+  })
+})
+
 describe('8장 · 공간 id 미저장', () => {
   it('게시물·확인 기록에 공간 id가 들어가지 않는다', () => {
     let s = reducer(makeSeed(), { type: 'OPEN_SPACE', id: 'space_a' })
@@ -48,6 +74,28 @@ describe('원칙1 · 개인 메모는 열린 공간에서만', () => {
     let s = reducer(makeSeed(), { type: 'OPEN_SPACE', id: 'space_b' })
     s = reducer(s, { type: 'UPDATE_MEMO', id: 'memo_1', body: '바꿈' })
     expect(s.memos.find((m) => m.id === 'memo_1')?.body).not.toBe('바꿈')
+  })
+})
+
+describe('공간 수정', () => {
+  it('이름과 모습을 저장하고 기존 메모와 홈 구성은 유지한다', () => {
+    const before = makeSeed()
+    const original = before.spaces[0]
+    const after = reducer(before, {
+      type: 'UPDATE_SPACE', id: original.id, name: '새 이름', description: '새 설명',
+      icon: 'cloud', color: '#ffffff',
+    })
+    expect(after.spaces[0]).toMatchObject({ id: original.id, name: '새 이름', description: '새 설명' })
+    expect(after.spaces[0].homeWidgets).toEqual(original.homeWidgets)
+    expect(after.memos).toEqual(before.memos)
+  })
+  it('중복된 이름은 저장하지 않는다', () => {
+    const before = makeSeed()
+    const after = reducer(before, {
+      type: 'UPDATE_SPACE', id: before.spaces[0].id, name: before.spaces[1].name,
+      description: '', icon: 'cloud', color: '#ffffff',
+    })
+    expect(after).toBe(before)
   })
 })
 

@@ -1,5 +1,6 @@
 import { Calendar, CheckSquare, Check, ChevronRight, Pencil, Pin } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { Card } from '../ui'
 import { DateTile, ScopeBadge, SectionHead } from '../common'
 import { memosOf } from '../../state/selectors'
@@ -32,6 +33,7 @@ function Shortcuts() {
 
 /** 개인 메모 목록. 이 공간의 메모만 읽는다 (8장) */
 function Memos() {
+  const [expanded, setExpanded] = useState(false)
   const { state, currentSpace } = useStore()
   const nav = useNavigate()
   const memos = memosOf(state, currentSpace?.id ?? null)
@@ -42,7 +44,7 @@ function Memos() {
         <p className="empty">이 공간에 메모가 없어요.</p>
       ) : (
         <ul className="memo-list">
-          {memos.map((m) => {
+          {(expanded ? memos : memos.slice(0, 2)).map((m) => {
             const [title, ...rest] = m.body.split('\n')
             return (
               <li key={m.id}>
@@ -62,6 +64,11 @@ function Memos() {
           })}
         </ul>
       )}
+      {memos.length > 2 && (
+        <button className="home-more" onClick={() => setExpanded((value) => !value)}>
+          {expanded ? '메모 접기' : `메모 ${memos.length - 2}개 더 보기`}
+        </button>
+      )}
     </Card>
   )
 }
@@ -71,20 +78,18 @@ function Todos() {
   const { state, dispatch } = useStore()
   const nav = useNavigate()
   const todos: BoardPost[] = state.posts
-    .filter((p) => p.type === 'todo' && !p.deletedAt)
-    .sort((a, b) => Number(!!a.doneAt) - Number(!!b.doneAt) || (a.dueAt ?? '9').localeCompare(b.dueAt ?? '9'))
+    .filter((p) => p.type === 'todo' && !p.deletedAt && !p.doneAt)
+    .sort((a, b) => (a.dueAt ?? '9').localeCompare(b.dueAt ?? '9'))
+  if (todos.length === 0) return null
   return (
     <Card className="sec">
       <SectionHead
-        title="전체 할 일"
+        title="할 일"
         badge={<ScopeBadge scope="shared" />}
         onMore={() => nav('/board?filter=todo')}
       />
-      {todos.length === 0 ? (
-        <p className="empty">공용 할 일이 없어요.</p>
-      ) : (
-        <ul className="todo-list">
-          {todos.slice(0, 3).map((t) => (
+      <ul className="todo-list">
+          {todos.slice(0, 2).map((t) => (
             <li key={t.id}>
               <button
                 className={`check${t.doneAt ? ' on' : ''}`}
@@ -99,13 +104,13 @@ function Todos() {
               {t.dueAt && !t.doneAt && <small>{formatShortDate(t.dueAt)}</small>}
             </li>
           ))}
-        </ul>
-      )}
+      </ul>
+      {todos.length > 2 && <button className="home-more" onClick={() => nav('/board?filter=todo')}>할 일 {todos.length - 2}개 더 보기</button>}
     </Card>
   )
 }
 
-/** 다가오는 일정 2개 (SCR-03) */
+/** 홈에는 가장 가까운 일정 하나만 보여 준다. 전체 목록은 게시판에서 본다. */
 function Events() {
   const { state } = useStore()
   const nav = useNavigate()
@@ -113,7 +118,8 @@ function Events() {
   const events = state.posts
     .filter((p) => p.type === 'event' && !p.deletedAt && p.eventAt && p.eventAt >= now)
     .sort((a, b) => a.eventAt!.localeCompare(b.eventAt!))
-    .slice(0, 2)
+    .slice(0, 1)
+  if (events.length === 0) return null
   return (
     <Card className="sec">
       <SectionHead
@@ -121,10 +127,7 @@ function Events() {
         badge={<ScopeBadge scope="shared" />}
         onMore={() => nav('/board?filter=event')}
       />
-      {events.length === 0 ? (
-        <p className="empty">다가오는 일정이 없어요.</p>
-      ) : (
-        <ul className="event-list">
+      <ul className="event-list">
           {events.map((e) => (
             <li key={e.id}>
               <DateTile iso={e.eventAt!} />
@@ -137,15 +140,14 @@ function Events() {
               </span>
             </li>
           ))}
-        </ul>
-      )}
+      </ul>
     </Card>
   )
 }
 
 export const WIDGETS: Record<
   HomeWidgetId,
-  { label: string; shared: boolean; View: () => React.JSX.Element }
+  { label: string; shared: boolean; View: () => React.JSX.Element | null }
 > = {
   shortcuts: { label: '바로가기', shared: false, View: Shortcuts },
   memos: { label: '메모', shared: false, View: Memos },

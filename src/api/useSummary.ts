@@ -24,7 +24,7 @@ export function useSummary() {
 
   const run = useCallback(
     async (range: { from: Date; to: Date }, target: Target = 'both') => {
-      if (!state.settings.aiSummaryEnabled || busy.current) return // 꺼져 있으면 요약하지 않는다 (F-05-1a)
+      if (!state.settings.aiSummaryEnabled || !state.settings.aiConsentAt || busy.current) return
       const built = buildSummaryRequest(state, { ...range, target })
       if (built.kind === 'few') {
         setPhase({ kind: 'originals', reason: 'few', postIds: built.postIds, messageIds: built.messageIds })
@@ -64,5 +64,5 @@ export function useSummary() {
 
   const cancel = useCallback(() => abortRef.current?.abort(), [])
   const reset = useCallback(() => setPhase({ kind: 'idle' }), [])
-  return { phase, run, cancel, reset, enabled: state.settings.aiSummaryEnabled }
+  return { phase, run, cancel, reset, enabled: state.settings.aiSummaryEnabled && !!state.settings.aiConsentAt }
 }

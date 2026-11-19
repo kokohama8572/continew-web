@@ -19,6 +19,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'board', label: '게시판' }, // 주의사항 + 메모
 ]
 const PREVIEW = 3
+const MOCK_PREVIEW = import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_SUMMARY === 'true'
 
 export default function Board() {
   const { state, dispatch, currentSpace } = useStore()
@@ -29,7 +30,7 @@ export default function Board() {
   const [showPast, setShowPast] = useState(false)
   const [mine, setMine] = useState<string[]>([])
   const spaceId = currentSpace?.id ?? null
-  const aiOn = state.settings.aiSummaryEnabled
+  const aiOn = state.settings.aiSummaryEnabled && !!state.settings.aiConsentAt
 
   // F-03-9: 이 공간에서 공용 영역을 연 시각을 저장한다. 요약 기간(마지막으로 연 뒤)에 쓰도록 연 직전 값을 들고 있는다
   const sinceRef = useRef(spaceId ? state.boardViewed[spaceId] : undefined)
@@ -94,7 +95,7 @@ export default function Board() {
           {aiOn && (
             <span className="ai-chip">
               <Sparkles size={12} aria-hidden />
-              {COPY.aiOn}
+              {MOCK_PREVIEW ? '화면 체험용 요약 켜짐' : COPY.aiOn}
             </span>
           )}
         </div>
@@ -120,7 +121,7 @@ export default function Board() {
           <Sparkles size={22} aria-hidden />
           <span>
             <strong>새 내용을 요약하기</strong>
-            <small>공유된 일정과 게시글을 AI로 정리해요.</small>
+            <small>{MOCK_PREVIEW ? '예시 응답으로 화면을 체험해요.' : '공유된 일정과 게시글을 AI로 정리해요.'}</small>
           </span>
           <ChevronRight size={18} aria-hidden />
         </button>
@@ -155,7 +156,7 @@ export default function Board() {
         </div>
       )}
 
-      {import.meta.env.DEV && <DevAiToggle />}
+      {MOCK_PREVIEW && <DevAiToggle />}
 
       <button className="fab" aria-label="공용에 직접 작성" onClick={() => nav('/share')}>
         <Plus size={26} aria-hidden />

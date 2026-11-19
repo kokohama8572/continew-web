@@ -20,6 +20,7 @@ export default function SummaryResultScreen() {
   const [rangeKind, setRangeKind] = useState<RangeKind>(fromBoard ? 'sinceLastOpen' : '7d')
   const [originalIds, setOriginalIds] = useState<string[]>([])
   const { phase, run, cancel, reset, enabled } = useSummary()
+  const mockPreview = import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_SUMMARY === 'true'
 
   function selectedRange() {
     const to = new Date()
@@ -146,6 +147,7 @@ export default function SummaryResultScreen() {
         {phase.kind === 'idle' ? '요약 시작' : '다시 요약하기'}
       </button>
       <div className="summary-results">
+        {mockPreview && <p className="notice">화면 체험용 요약입니다. 실제 AI나 백엔드에 연결되지 않습니다.</p>}
         {!enabled && <p className="notice">요약 기능이 꺼져 있어요.</p>}
 
         {phase.kind === 'loading' && (

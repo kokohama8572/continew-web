@@ -1,6 +1,6 @@
 import { Check, ChevronDown, Send } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Sheet from '../components/Sheet'
 import { visibleSpaces } from '../state/selectors'
 import { useStore } from '../state/store'
@@ -12,12 +12,13 @@ const time = (value: string) =>
 const authorTone = (label: string) =>
   Array.from(label).reduce((hash, char) => hash + char.codePointAt(0)!, 0) % 4
 
-/** 열린 공간을 기본 작성자로 보여 주고, 전송 전 다른 표기로 바꿀 수 있다. */
+/** 작성자는 사용자가 직접 선택한다. 공간 이름으로 추측하지 않는다. */
 export default function ChatScreen() {
+  const navigate = useNavigate()
   const { state, dispatch, currentSpace } = useStore()
   const [authorChoice, setAuthorChoice] = useState<{ spaceId: string | null; label: string } | null>(null)
   const spaceId = currentSpace?.id ?? null
-  const authorLabel = authorChoice?.spaceId === spaceId ? authorChoice.label : (currentSpace?.name ?? '')
+  const authorLabel = authorChoice?.spaceId === spaceId ? authorChoice.label : ''
   const [body, setBody] = useState('')
   const [authorOpen, setAuthorOpen] = useState(false)
   const [params] = useSearchParams()
@@ -79,6 +80,9 @@ export default function ChatScreen() {
                 <time dateTime={message.createdAt}>{time(message.createdAt)}</time>
               </div>
               <p className="chat-bubble">{message.body}</p>
+              <div className="chat-actions">
+                <button type="button" onClick={() => navigate(`/share?type=todo&message=${encodeURIComponent(message.id)}`)}>할 일·일정으로 남기기</button>
+              </div>
             </div>
           </li>
         ))}

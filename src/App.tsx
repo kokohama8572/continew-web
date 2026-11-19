@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { FrameLayout, TabLayout } from './components/layouts'
 import { StoreProvider } from './state/store'
 import { LockProvider, useLock } from './security/LockProvider'
@@ -18,6 +18,11 @@ function Entry() {
   return <Navigate to="/spaces" replace />
 }
 
+function SpaceManageRoute() {
+  const { id } = useParams()
+  return <SpaceManage key={id ?? 'list'} />
+}
+
 function AppRoutes() {
   const { status } = useLock()
   if (status !== 'open')
@@ -32,7 +37,8 @@ function AppRoutes() {
       <Route element={<FrameLayout />}>
         <Route path="/lock" element={<Lock />} />
         <Route path="/spaces" element={<SpaceSelect />} />
-        <Route path="/spaces/manage" element={<SpaceManage />} />
+        <Route path="/spaces/manage" element={<SpaceManageRoute />} />
+        <Route path="/spaces/manage/:id" element={<SpaceManageRoute />} />
       </Route>
       <Route element={<TabLayout />}>
         <Route path="/home" element={<SpaceHome />} />

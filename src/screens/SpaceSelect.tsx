@@ -65,7 +65,7 @@ export default function SpaceSelect() {
         ))}
       </ul>
 
-      <button className="add-space" onClick={() => nav('/spaces/manage')}>
+      <button className="add-space" onClick={() => nav('/spaces/manage/new')}>
         <Plus size={18} aria-hidden />새 공간 만들기
       </button>
 

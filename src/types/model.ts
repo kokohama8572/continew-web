@@ -56,6 +56,7 @@ export interface BoardPost {
   doneByLabel?: string
   authorLabel: string // 공간 이름 또는 '이름 없이'. 게시 시점 글자로 저장
   origin: 'manual' | 'memo' | 'message' | 'ai_draft'
+  sourceMessageId?: string
   pinned: boolean
   confirmRequested: boolean
   createdAt: string

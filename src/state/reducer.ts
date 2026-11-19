@@ -11,7 +11,7 @@ export interface AppState {
   /** 공간별로 공용 영역을 마지막으로 연 시각 (F-03-9). 읽었다는 표시가 아님 */
   boardViewed: Record<string, string>
   currentSpaceId: string | null
-  settings: { aiSummaryEnabled: boolean; notifyPreview: boolean }
+  settings: { aiSummaryEnabled: boolean; aiConsentAt?: string; notifyPreview: boolean }
 }
 
 export interface PostDraft {
@@ -26,6 +26,7 @@ export interface PostDraft {
   confirmRequested: boolean
   origin: BoardPost['origin']
   fromMemoId?: string
+  fromMessageId?: string
 }
 
 export type Action =
@@ -33,6 +34,7 @@ export type Action =
   | { type: 'OPEN_SPACE'; id: string }
   | { type: 'CLOSE_SPACE' }
   | { type: 'ADD_SPACE'; name: string; color: string; icon?: string; description?: string }
+  | { type: 'UPDATE_SPACE'; id: string; name: string; color: string; icon: string; description: string }
   | { type: 'SET_WIDGETS'; spaceId: string; widgets: HomeWidget[] }
   | { type: 'ADD_MEMO'; body: string }
   | { type: 'UPDATE_MEMO'; id: string; body: string }
@@ -43,7 +45,7 @@ export type Action =
   | { type: 'UNCONFIRM'; id: string }
   | { type: 'TOGGLE_TODO'; id: string }
   | { type: 'MARK_BOARD_VIEWED' }
-  | { type: 'SET_AI'; enabled: boolean }
+  | { type: 'SET_AI'; enabled: boolean; consentAt?: string }
 
 export function reducer(s: AppState, a: Action): AppState {
   switch (a.type) {
@@ -70,6 +72,16 @@ export function reducer(s: AppState, a: Action): AppState {
         aiMemoEnabled: false,
       }
       return { ...s, spaces: [...s.spaces, space] }
+    }
+    case 'UPDATE_SPACE': {
+      const name = a.name.trim()
+      if (!name || name.length > 20 || s.spaces.some((x) => x.id !== a.id && !x.deletedAt && x.name === name)) return s
+      return {
+        ...s,
+        spaces: s.spaces.map((x) => x.id === a.id && !x.deletedAt
+          ? { ...x, name, color: a.color, icon: a.icon, description: a.description.trim() }
+          : x),
+      }
     }
     case 'SET_WIDGETS':
       return {
@@ -121,6 +133,7 @@ export function reducer(s: AppState, a: Action): AppState {
         dueAt: d.dueAt,
         authorLabel: d.authorLabel,
         origin: d.origin,
+        sourceMessageId: d.fromMessageId,
         pinned: d.type === 'caution',
         confirmRequested: d.type !== 'note' && d.confirmRequested,
         createdAt: t,
@@ -172,6 +185,6 @@ export function reducer(s: AppState, a: Action): AppState {
     case 'MARK_BOARD_VIEWED':
       return s.currentSpaceId ? { ...s, boardViewed: { ...s.boardViewed, [s.currentSpaceId]: nowIso() } } : s
     case 'SET_AI':
-      return { ...s, settings: { ...s.settings, aiSummaryEnabled: a.enabled } }
+      return { ...s, settings: { ...s.settings, aiSummaryEnabled: a.enabled && !!a.consentAt, aiConsentAt: a.enabled ? a.consentAt : undefined } }
   }
 }

@@ -27,7 +27,7 @@ export default function SpaceHome() {
   if (!currentSpace) return <Navigate to="/spaces" replace />
 
   const fresh = newItemCount(state, currentSpace.id)
-  const aiOn = state.settings.aiSummaryEnabled
+  const aiOn = state.settings.aiSummaryEnabled && !!state.settings.aiConsentAt
 
   return (
     <div className="page page-home" style={{ '--c': currentSpace.color } as React.CSSProperties}>
@@ -43,7 +43,7 @@ export default function SpaceHome() {
       {fresh > 0 && (
         <div className="newstrip">
           <button className="newstrip-main" onClick={() => nav('/board')}>
-            <span>마지막으로 확인한 뒤 공용에 새 글 {fresh}개</span>
+            <span>마지막으로 공용을 연 뒤 새 글 {fresh}개</span>
             <ChevronRight size={16} aria-hidden />
           </button>
           {aiOn && (

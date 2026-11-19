@@ -72,8 +72,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [state, loaded.canSave])
   useEffect(() => {
-    if (!state.settings.aiSummaryEnabled) summaryCache.clear() // F-05-1e
-  }, [state.settings.aiSummaryEnabled])
+    if (!state.settings.aiSummaryEnabled || !state.settings.aiConsentAt) summaryCache.clear()
+  }, [state.settings.aiSummaryEnabled, state.settings.aiConsentAt])
   const value = useMemo<Store>(
     () => ({
       state,

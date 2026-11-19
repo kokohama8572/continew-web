@@ -1,5 +1,6 @@
 import { Check, ChevronDown, Clock, Pin, StickyNote } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { DateTile } from '../common'
 import { useStore } from '../../state/store'
 import { formatShortDate, formatTime } from '../../state/utils'
@@ -33,6 +34,7 @@ function Sub({ post }: { post: BoardPost }) {
 /** 공유 게시물 한 줄. 일정·할 일·주의사항·메모(F-03-4)를 같은 모양으로 보여준다 */
 export default function PostRow({ post, mine, setMine, muted, focused = false }: Props) {
   const { dispatch } = useStore()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   useEffect(() => {
     if (focused) setOpen(true)
@@ -77,6 +79,7 @@ export default function PostRow({ post, mine, setMine, muted, focused = false }:
         <div className="post-detail">
           {post.body && <p>{post.body}</p>}
           <p className="meta">작성 · {post.authorLabel}</p>
+          {post.sourceMessageId && <button className="link-btn" onClick={() => navigate(`/chat?message=${encodeURIComponent(post.sourceMessageId!)}`)}>대화 원문 보기</button>}
         </div>
       )}
       {post.confirmRequested && <ConfirmArea post={post} mine={mine} setMine={setMine} />}

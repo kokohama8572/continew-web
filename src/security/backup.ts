@@ -91,7 +91,8 @@ function isPost(value: unknown) {
     typeof value.pinned === 'boolean' &&
     typeof value.confirmRequested === 'boolean' &&
     isOptionalText(value.eventAt) &&
-    isOptionalText(value.dueAt)
+    isOptionalText(value.dueAt) &&
+    isOptionalText(value.sourceMessageId)
   )
 }
 
@@ -128,6 +129,7 @@ export function isAppState(value: unknown): value is AppState {
     Object.values(value.boardViewed).every(isText) &&
     isNullableText(value.currentSpaceId) &&
     typeof value.settings.aiSummaryEnabled === 'boolean' &&
+    isOptionalText(value.settings.aiConsentAt) &&
     typeof value.settings.notifyPreview === 'boolean'
   )
 }
