@@ -1,9 +1,8 @@
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Eye, EyeOff, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { SPACE_ICONS, SpaceIcon } from '../components/icons'
 import { SPACE_COLORS } from '../styles/palette'
-import { visibleSpaces } from '../state/selectors'
 import { useStore } from '../state/store'
 
 export default function SpaceManageScreen() {
@@ -18,18 +17,27 @@ export default function SpaceManageScreen() {
   const trimmed = name.trim()
   const duplicate = state.spaces.some((s) => s.id !== editing?.id && !s.deletedAt && s.name === trimmed)
   const valid = trimmed.length >= 1 && trimmed.length <= 20 && !duplicate
+  const managedSpaces = state.spaces.filter((space) => !space.deletedAt).sort((a, b) => a.sortOrder - b.sortOrder)
   if (!id) return (
     <main className="scroll page editor-page">
       <Link to="/spaces" className="back"><ChevronLeft size={20} aria-hidden /> 공간 선택</Link>
       <h1>공간 관리</h1>
-      <p className="sub">공간의 이름과 모습을 수정할 수 있어요.</p>
-      <ul className="space-list">
-        {visibleSpaces(state).map((space) => <li key={space.id}>
+      <p className="sub">공간의 이름·모습·순서를 바꿀 수 있어요. 숨겨도 기록은 남고 여기서 다시 보이게 할 수 있어요.</p>
+      <ul className="space-list manage-space-list">
+        {managedSpaces.map((space, index) => <li key={space.id}>
           <Link className="space-card" to={`/spaces/manage/${space.id}`} style={{ '--c': space.color } as React.CSSProperties}>
             <span className="chip-icon"><SpaceIcon name={space.icon} size={22} /></span>
-            <span className="space-text"><strong>{space.name}</strong>{space.description && <small>{space.description}</small>}</span>
+            <span className="space-text"><strong>{space.name}</strong>{space.hidden && <small>숨김</small>}{space.description && <small>{space.description}</small>}</span>
             <ChevronRight size={18} aria-hidden />
           </Link>
+          <div className="manage-space-controls">
+            <button type="button" disabled={index === 0} aria-label={`${space.name} 위로 이동`} onClick={() => dispatch({ type: 'MOVE_SPACE', id: space.id, direction: 'up' })}><ArrowUp size={16} aria-hidden /> 위로</button>
+            <button type="button" disabled={index === managedSpaces.length - 1} aria-label={`${space.name} 아래로 이동`} onClick={() => dispatch({ type: 'MOVE_SPACE', id: space.id, direction: 'down' })}><ArrowDown size={16} aria-hidden /> 아래로</button>
+            <button type="button" aria-label={`${space.name} ${space.hidden ? '다시 보이기' : '숨기기'}`} onClick={() => dispatch({ type: 'SET_SPACE_HIDDEN', id: space.id, hidden: !space.hidden })}>
+              {space.hidden ? <Eye size={16} aria-hidden /> : <EyeOff size={16} aria-hidden />}
+              {space.hidden ? '다시 보이기' : '숨기기'}
+            </button>
+          </div>
         </li>)}
       </ul>
       <Link className="add-space" to="/spaces/manage/new"><Plus size={18} aria-hidden />새 공간 만들기</Link>

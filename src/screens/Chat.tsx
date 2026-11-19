@@ -1,4 +1,4 @@
-import { Check, ChevronDown, MoreHorizontal, Send } from 'lucide-react'
+import { Check, ChevronDown, MoreHorizontal, Search, Send, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Sheet from '../components/Sheet'
@@ -24,9 +24,18 @@ export default function ChatScreen() {
   const [menuId, setMenuId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editBody, setEditBody] = useState('')
+  const [replyingToId, setReplyingToId] = useState<string | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [search, setSearch] = useState('')
   const [params] = useSearchParams()
   const focusMessage = params.get('message')
   const messages = state.messages.filter((message) => !message.deletedAt)
+  const messageById = new Map(messages.map((message) => [message.id, message]))
+  const searchTerm = search.trim().toLocaleLowerCase('ko-KR')
+  const visibleMessages = searchTerm
+    ? messages.filter((message) => `${message.authorLabel} ${message.body}`.toLocaleLowerCase('ko-KR').includes(searchTerm))
+    : messages
+  const replyingTo = replyingToId ? messageById.get(replyingToId) : undefined
   const menuMessage = messages.find((message) => message.id === menuId)
   const canEditMenuMessage = !!spaceId && menuMessage?.senderSpaceId === spaceId
   const listRef = useRef<HTMLUListElement>(null)
@@ -58,22 +67,37 @@ export default function ChatScreen() {
     event.preventDefault()
     if (!authorLabel || !body.trim()) return
     scrollAfterSend.current = true
-    dispatch({ type: 'SEND_MESSAGE', authorLabel, body: body.trim() })
+    dispatch({ type: 'SEND_MESSAGE', authorLabel, body: body.trim(), replyToId: replyingToId ?? undefined })
     setBody('')
+    setReplyingToId(null)
+    setSearch('')
+    setSearchOpen(false)
   }
 
   return (
     <div className="page page-chat">
       <div className="chat-head">
-        <h1>대화</h1>
+        <div className="chat-head-row">
+          <h1>대화</h1>
+          <button type="button" className="chat-search-toggle" aria-label={searchOpen ? '대화 검색 닫기' : '대화 검색'} aria-expanded={searchOpen} onClick={() => {
+            setSearchOpen(!searchOpen)
+            setSearch('')
+          }}>{searchOpen ? <X size={19} aria-hidden /> : <Search size={19} aria-hidden />}</button>
+        </div>
         <p className="sub">공간을 넘어 자유롭게 이야기해요.</p>
+        {searchOpen && <div className="chat-search">
+          <input aria-label="대화 내용 검색" placeholder="이름이나 대화 내용 검색" value={search} onChange={(event) => setSearch(event.target.value)} autoFocus />
+          {search && <button type="button" aria-label="검색어 지우기" onClick={() => setSearch('')}><X size={17} aria-hidden /></button>}
+        </div>}
+        {searchTerm && <p className="chat-search-count" role="status">검색 결과 {visibleMessages.length}개</p>}
       </div>
 
       <ul className="chat-list" aria-label="공용 대화" ref={listRef}>
-        {messages.map((message, index) => {
+        {visibleMessages.map((message, index) => {
           const mine = !!spaceId && message.senderSpaceId === spaceId
-          const previous = messages[index - 1]
-          const grouped = !!previous && previous.authorLabel === message.authorLabel && previous.senderSpaceId === message.senderSpaceId
+          const previous = visibleMessages[index - 1]
+          const grouped = !searchTerm && !!previous && previous.authorLabel === message.authorLabel && previous.senderSpaceId === message.senderSpaceId
+          const replySource = message.replyToId ? messageById.get(message.replyToId) : undefined
           return (
             <li
               className={`chat-message chat-tone-${authorTone(message.authorLabel)}${mine ? ' is-own' : ''}${grouped ? ' is-grouped' : ''}${message.id === focusMessage ? ' is-target' : ''}`}
@@ -90,7 +114,13 @@ export default function ChatScreen() {
                   </div>
                 )}
                 <div className="chat-bubble-row">
-                  <p className="chat-bubble">{message.body}</p>
+                  <div className="chat-message-text">
+                    {message.replyToId && <div className="chat-reply-reference">
+                      <strong>{replySource?.authorLabel ?? '이전 메시지'}</strong>
+                      <span>{replySource?.body ?? '삭제된 메시지'}</span>
+                    </div>}
+                    <p className="chat-bubble">{message.body}</p>
+                  </div>
                   <button type="button" className="chat-menu-button" aria-label={`${message.body.slice(0, 20)} 메시지 옵션`} onClick={() => setMenuId(message.id)}>
                     <MoreHorizontal size={17} aria-hidden />
                   </button>
@@ -100,9 +130,14 @@ export default function ChatScreen() {
             </li>
           )
         })}
+        {searchTerm && visibleMessages.length === 0 && <li className="chat-empty">일치하는 대화가 없어요.</li>}
       </ul>
 
       <form className="chat-compose" onSubmit={send}>
+        {replyingToId && <div className="chat-compose-reply">
+          <div><strong>{replyingTo?.authorLabel ?? '이전 메시지'}에게 답장</strong><span>{replyingTo?.body ?? '삭제된 메시지'}</span></div>
+          <button type="button" aria-label="답장 취소" onClick={() => setReplyingToId(null)}><X size={18} aria-hidden /></button>
+        </div>}
         <div className="chat-author-row">
           <span className="chat-author-label">작성자</span>
           <button type="button" className="chat-author-button" onClick={() => setAuthorOpen(true)}>
@@ -110,6 +145,7 @@ export default function ChatScreen() {
             <ChevronDown size={15} aria-hidden />
           </button>
         </div>
+        {currentSpace && authorLabel !== currentSpace.name && <p className="chat-author-hint">이름만 바뀌어요. 이 메시지는 {currentSpace.name} 공간에서 보낸 것으로 남아요.</p>}
         <div className="chat-input-row">
           <input
             aria-label="메시지"
@@ -144,6 +180,13 @@ export default function ChatScreen() {
       </Sheet>
       <Sheet open={menuId !== null} onClose={() => setMenuId(null)} title="메시지 옵션">
         <div className="switch-list">
+          <button className="switch-item" onClick={() => {
+            if (!menuMessage) return
+            setReplyingToId(menuMessage.id)
+            setMenuId(null)
+            setSearch('')
+            setSearchOpen(false)
+          }}>답장하기</button>
           <button className="switch-item" onClick={() => {
             if (!menuMessage) return
             setMenuId(null)

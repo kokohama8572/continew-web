@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { makeSeed } from '../mocks/seed'
 import { reducer, type PostDraft } from './reducer'
-import { memosOf, sortBoard } from './selectors'
+import { memosOf, sortBoard, visibleSpaces } from './selectors'
 
 const draft: PostDraft = {
   type: 'note',
@@ -53,6 +53,16 @@ describe('공간에서 보낸 메시지 수정·삭제', () => {
     expect(edited.messages.at(-1)?.body).toBe('변경')
     expect(edited.messages.at(-1)?.editedAt).toBeTruthy()
     expect(reducer(edited, { type: 'DELETE_MESSAGE', id }).messages.at(-1)?.deletedAt).toBeTruthy()
+  })
+})
+
+describe('대화 답장', () => {
+  it('존재하는 메시지만 답장 대상으로 연결한다', () => {
+    const initial = reducer(makeSeed(), { type: 'OPEN_SPACE', id: 'space_a' })
+    const replied = reducer(initial, { type: 'SEND_MESSAGE', body: '답장', authorLabel: '하루', replyToId: initial.messages[0].id })
+    expect(replied.messages.at(-1)?.replyToId).toBe(initial.messages[0].id)
+    const missing = reducer(initial, { type: 'SEND_MESSAGE', body: '새 메시지', authorLabel: '하루', replyToId: 'missing' })
+    expect(missing.messages.at(-1)?.replyToId).toBeUndefined()
   })
 })
 
@@ -112,6 +122,27 @@ describe('공간 수정', () => {
       description: '', icon: 'cloud', color: '#ffffff',
     })
     expect(after).toBe(before)
+  })
+})
+
+describe('공간 숨김·정렬', () => {
+  it('숨긴 공간과 삭제된 공간은 열 수 없고, 숨긴 공간은 다시 보이게 할 수 있다', () => {
+    const opened = reducer(makeSeed(), { type: 'OPEN_SPACE', id: 'space_a' })
+    const hidden = reducer(opened, { type: 'SET_SPACE_HIDDEN', id: 'space_a', hidden: true })
+    expect(hidden.currentSpaceId).toBeNull()
+    expect(visibleSpaces(hidden).some((space) => space.id === 'space_a')).toBe(false)
+    expect(reducer(hidden, { type: 'OPEN_SPACE', id: 'space_a' })).toBe(hidden)
+    const restored = reducer(hidden, { type: 'SET_SPACE_HIDDEN', id: 'space_a', hidden: false })
+    expect(visibleSpaces(restored).some((space) => space.id === 'space_a')).toBe(true)
+  })
+
+  it('순서를 바꿔도 공간 id와 메모는 유지한다', () => {
+    const before = makeSeed()
+    const first = visibleSpaces(before)[0]
+    const after = reducer(before, { type: 'MOVE_SPACE', id: first.id, direction: 'down' })
+    expect(visibleSpaces(after)[1].id).toBe(first.id)
+    expect(after.memos).toEqual(before.memos)
+    expect(reducer(before, { type: 'MOVE_SPACE', id: first.id, direction: 'up' })).toBe(before)
   })
 })
 

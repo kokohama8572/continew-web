@@ -35,6 +35,8 @@ export type Action =
   | { type: 'CLOSE_SPACE' }
   | { type: 'ADD_SPACE'; name: string; color: string; icon?: string; description?: string }
   | { type: 'UPDATE_SPACE'; id: string; name: string; color: string; icon: string; description: string }
+  | { type: 'SET_SPACE_HIDDEN'; id: string; hidden: boolean }
+  | { type: 'MOVE_SPACE'; id: string; direction: 'up' | 'down' }
   | { type: 'SET_WIDGETS'; spaceId: string; widgets: HomeWidget[] }
   | { type: 'ADD_MEMO'; body: string }
   | { type: 'UPDATE_MEMO'; id: string; body: string }
@@ -54,7 +56,7 @@ export function reducer(s: AppState, a: Action): AppState {
     case 'RESTORE_BACKUP':
       return { ...a.state, currentSpaceId: null }
     case 'OPEN_SPACE':
-      return s.spaces.some((x) => x.id === a.id) ? { ...s, currentSpaceId: a.id } : s
+      return s.spaces.some((x) => x.id === a.id && !x.hidden && !x.deletedAt) ? { ...s, currentSpaceId: a.id } : s
     case 'CLOSE_SPACE':
       return { ...s, currentSpaceId: null }
     case 'ADD_SPACE': {
@@ -84,6 +86,26 @@ export function reducer(s: AppState, a: Action): AppState {
           ? { ...x, name, color: a.color, icon: a.icon, description: a.description.trim() }
           : x),
       }
+    }
+    case 'SET_SPACE_HIDDEN': {
+      const space = s.spaces.find((x) => x.id === a.id && !x.deletedAt)
+      if (!space || space.hidden === a.hidden) return s
+      return {
+        ...s,
+        spaces: s.spaces.map((x) => x.id === a.id ? { ...x, hidden: a.hidden } : x),
+        currentSpaceId: a.hidden && s.currentSpaceId === a.id ? null : s.currentSpaceId,
+      }
+    }
+    case 'MOVE_SPACE': {
+      const ordered = s.spaces.filter((x) => !x.deletedAt).sort((x, y) => x.sortOrder - y.sortOrder)
+      const index = ordered.findIndex((x) => x.id === a.id)
+      const nextIndex = index + (a.direction === 'up' ? -1 : 1)
+      if (index < 0 || nextIndex < 0 || nextIndex >= ordered.length) return s
+      const moved = ordered[index]
+      ordered[index] = ordered[nextIndex]
+      ordered[nextIndex] = moved
+      const orderById = new Map(ordered.map((space, position) => [space.id, position]))
+      return { ...s, spaces: s.spaces.map((space) => ({ ...space, sortOrder: orderById.get(space.id) ?? space.sortOrder })) }
     }
     case 'SET_WIDGETS':
       return {
@@ -154,12 +176,14 @@ export function reducer(s: AppState, a: Action): AppState {
     }
     case 'SEND_MESSAGE': {
       if (!a.authorLabel.trim() || !a.body.trim()) return s
+      const replyToId = a.replyToId && s.messages.some((message) => message.id === a.replyToId && !message.deletedAt)
+        ? a.replyToId : undefined
       const msg: Message = {
         id: newId('msg'),
         body: a.body,
         authorLabel: a.authorLabel,
         senderSpaceId: s.currentSpaceId ?? undefined,
-        replyToId: a.replyToId,
+        replyToId,
         createdAt: nowIso(),
         deletedAt: null,
       }
