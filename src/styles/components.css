@@ -1025,25 +1025,7 @@
 }
 .chat-message.is-own .chat-bubble { background: var(--primary-soft); }
 .chat-time { display: block; margin: 3px 4px 0; color: var(--text-sub); font-size: 11px; }
-.chat-message.is-own .chat-actions { justify-content: flex-end; }
 .chat-edit-input { min-height: 120px; resize: vertical; }
-.chat-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 5px 0 0 4px;
-}
-.chat-actions button {
-  padding: 5px 2px;
-  color: var(--text-sub);
-  font-size: 12px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.chat-actions button:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
 .chat-tone-0 .chat-bubble {
   background: var(--primary-soft);
 }

@@ -2,8 +2,9 @@ import { ChevronLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ScopeBadge } from '../components/common'
+import { visibleSpaces } from '../state/selectors'
 import { useStore } from '../state/store'
-import type { PostType } from '../types/model'
+import { ANONYMOUS_LABEL, type PostType } from '../types/model'
 
 const TYPES: { value: PostType; label: string }[] = [
   { value: 'note', label: '게시글' }, { value: 'event', label: '일정' },
@@ -58,7 +59,11 @@ export default function ShareConfirmScreen() {
     {type === 'event' && <><label className="form-label" htmlFor="share-date">날짜와 시간</label><input id="share-date" type="datetime-local" className="form-input" value={eventAt} onChange={(e) => setEventAt(e.target.value)} /></>}
     {type === 'todo' && <><label className="form-label" htmlFor="share-due">마감 날짜 (선택)</label><input id="share-due" type="date" className="form-input" value={dueAt} onChange={(e) => setDueAt(e.target.value)} /></>}
     <label className="form-label" htmlFor="share-author">작성자 표기</label>
-    <select id="share-author" className="form-input" value={authorLabel} onChange={(e) => setAuthorLabel(e.target.value)}><option value="">선택해 주세요</option><option value="이름 없이">이름 없이</option>{currentSpace && <option value={currentSpace.name}>{currentSpace.name}</option>}</select>
+    <select id="share-author" className="form-input" value={authorLabel} onChange={(e) => setAuthorLabel(e.target.value)}>
+      <option value="">선택해 주세요</option>
+      {visibleSpaces(state).map((space) => <option key={space.id} value={space.name}>{space.name}</option>)}
+      <option value={ANONYMOUS_LABEL}>{ANONYMOUS_LABEL}</option>
+    </select>
     <label className="share-consent"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> 이 내용을 공용 게시판에 공개하는 데 동의해요.</label>
     <button className="btn btn-primary wide" disabled={!valid} onClick={() => { if (!valid) return; dispatch({ type: 'PUBLISH_POST', draft: { type, title: title.trim(), body: body.trim(), eventAt: type === 'event' ? new Date(eventAt).toISOString() : undefined, dueAt: type === 'todo' && dueAt ? new Date(`${dueAt}T00:00:00`).toISOString() : undefined, authorLabel, confirmRequested: false, origin: message ? 'message' : memo ? 'memo' : 'manual', fromMemoId: memo?.id, fromMessageId: message?.id } }); clearDraft(); nav('/board') }}>공용 게시판에 올리기</button>
   </div>

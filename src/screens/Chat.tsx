@@ -27,6 +27,8 @@ export default function ChatScreen() {
   const [params] = useSearchParams()
   const focusMessage = params.get('message')
   const messages = state.messages.filter((message) => !message.deletedAt)
+  const menuMessage = messages.find((message) => message.id === menuId)
+  const canEditMenuMessage = !!spaceId && menuMessage?.senderSpaceId === spaceId
   const listRef = useRef<HTMLUListElement>(null)
   const scrollAfterSend = useRef(false)
 
@@ -89,16 +91,11 @@ export default function ChatScreen() {
                 )}
                 <div className="chat-bubble-row">
                   <p className="chat-bubble">{message.body}</p>
-                  {mine && (
-                    <button type="button" className="chat-menu-button" aria-label={`${message.body.slice(0, 20)} 메시지 옵션`} onClick={() => setMenuId(message.id)}>
-                      <MoreHorizontal size={17} aria-hidden />
-                    </button>
-                  )}
+                  <button type="button" className="chat-menu-button" aria-label={`${message.body.slice(0, 20)} 메시지 옵션`} onClick={() => setMenuId(message.id)}>
+                    <MoreHorizontal size={17} aria-hidden />
+                  </button>
                 </div>
                 <time className="chat-time" dateTime={message.createdAt}>{time(message.createdAt)}{message.editedAt ? ' · 수정됨' : ''}</time>
-                <div className="chat-actions">
-                  <button type="button" onClick={() => navigate(`/share?type=todo&message=${encodeURIComponent(message.id)}`)}>할 일·일정으로 남기기</button>
-                </div>
               </div>
             </li>
           )
@@ -148,17 +145,23 @@ export default function ChatScreen() {
       <Sheet open={menuId !== null} onClose={() => setMenuId(null)} title="메시지 옵션">
         <div className="switch-list">
           <button className="switch-item" onClick={() => {
-            const message = messages.find((item) => item.id === menuId)
-            if (!message || message.senderSpaceId !== spaceId) return
-            setEditBody(message.body)
-            setEditingId(message.id)
+            if (!menuMessage) return
             setMenuId(null)
-          }}>수정</button>
-          <button className="switch-item" onClick={() => {
-            const id = menuId
-            setMenuId(null)
-            if (id && window.confirm('이 메시지를 삭제할까요?')) dispatch({ type: 'DELETE_MESSAGE', id })
-          }}>삭제</button>
+            navigate(`/share?type=todo&message=${encodeURIComponent(menuMessage.id)}`)
+          }}>할 일·일정으로 남기기</button>
+          {canEditMenuMessage && <>
+            <button className="switch-item" onClick={() => {
+              if (!menuMessage) return
+              setEditBody(menuMessage.body)
+              setEditingId(menuMessage.id)
+              setMenuId(null)
+            }}>수정</button>
+            <button className="switch-item" onClick={() => {
+              const id = menuMessage?.id
+              setMenuId(null)
+              if (id && window.confirm('이 메시지를 삭제할까요?')) dispatch({ type: 'DELETE_MESSAGE', id })
+            }}>삭제</button>
+          </>}
         </div>
       </Sheet>
       <Sheet open={editingId !== null} onClose={() => setEditingId(null)} title="메시지 수정">
