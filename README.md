@@ -98,10 +98,10 @@ AI 요약 설정이 꺼져 있으면 `useSummary().run`은 아무것도 하지 �
 | SCR-01 앱 잠금 (`screens/Lock.tsx`)                                           | 6자리 PIN 설정·잠금·해제. 웹에서는 생체인증·최근 앱 화면 가림 미지원      |
 | SCR-02 공간 선택 (`screens/SpaceSelect.tsx`)                                  | 구현                                                                      |
 | SCR-03 개인 공간 홈 (`screens/SpaceHome.tsx`, `components/home/`)             | 구현. 홈 구성 편집 포함                                                   |
-| SCR-04 메모·공간 만들기 (`screens/MemoEditor.tsx`, `screens/SpaceManage.tsx`) | 만들기·공간 수정 구현. 숨김·정렬은 미구현                                |
+| SCR-04 메모·공간 만들기 (`screens/MemoEditor.tsx`, `screens/SpaceManage.tsx`) | 만들기·공간 수정·숨김·순서 변경 구현                                     |
 | SCR-05 공유 확인 (`screens/ShareConfirm.tsx`)                                 | 게시글·일정·할 일·주의사항 작성 구현                                      |
 | SCR-06 공용 영역 (`screens/Board.tsx`, `components/board/`)                   | 구현. 필터·확인했어요·AI 요약 진입 포함                                   |
-| SCR-07 대화 (`screens/Chat.tsx`)                                              | 목록·작성자 직접 선택·전송·게시판 기록으로 옮기기 구현. 답장·검색은 미구현 |
+| SCR-07 대화 (`screens/Chat.tsx`)                                              | 목록·작성자 선택·전송·답장·검색·게시판 기록으로 옮기기 구현                |
 | SCR-08 AI 요약 결과 (`screens/SummaryResult.tsx`)                             | 로컬 서버 요청·4개 묶음·원문 이동 구현. 정식 동의 화면은 미구현           |
 | SCR-09 설정 (`screens/Settings.tsx`)                                          | PIN 잠금 간격과 암호화 백업·복원 구현. 그 외 설정은 미구현                |
 
