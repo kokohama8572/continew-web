@@ -749,6 +749,11 @@
 .past .post-list {
   margin-top: 8px;
 }
+/* 공유(+) 버튼(.fab)이 스크롤 끝의 마지막 콘텐츠를 덮지 않도록 아래 여백을 둔다.
+   버튼은 스크롤 영역 바닥에서 약 31~87px 위를 차지한다 */
+.page-shared {
+  padding-bottom: 72px;
+}
 .fab {
   position: absolute;
   right: 28px;
